@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View的响应式原理</title>
+</head>
+<body>
+    <!--
+        如何理解Vue响应式原理
+- 不要认为vue的响应式原理是理所当然的
+- 问题：
+  - （1）浏览器中app.message修改数据时，Vue内部是如何监听message数据改变的
+    回答：Object.defineProperty  ->  监听对象属性的改变
+  - （2）当数据改变时，Vue如何通知对应的数据所用的地方进行改变的？
+        回答：发布订阅者模式
+    -->
+    <div id="app">
+        {{message}}
+    </div>
+    <script>
+        const obj = {
+            name:'hjp',
+            message:'你被聘用了'
+        }
+        //使用Object.defineProperty监听属性值的变化
+        Object.keys(obj).forEach(key => {
+            //获取属性的值
+            let value = obj[key];
+            //监听值的变化
+            Object.defineProperty(obj,key,{
+                set(newValue){
+                    console.log('值改变了');
+                    value = newValue;
+                    //监听值改变了之后，就需要通知所有用到这些值的地方进行一个更新
+                    //使用发布者订阅者模式
+                    dep.notify();
+                },
+                get(){
+                    console.log('获取值成功');
+                    return value;
+                }
+            });
+        });
+        //发布者订阅者模式
+        //发布者
+        class Dep {
+            constructor(){
+                this.subs = [];
+            }
+            addSubs(watcher) {
+                this.subs.push(watcher);
+            }
+            notify(){
+                this.subs.forEach(item => {
+                    item.update();
+                })
+            }
+        }
+        //订阅者
+        class Watcher{
+            constructor(name){
+                this.name = name;
+            }
+            update(){
+                console.log(this.name+' update');
+            }
+        }
+        const dep = new Dep();
+        const w1 = new Watcher('zs');
+        dep.addSubs(w1);
+        const w2 = new Watcher('ls');
+        dep.addSubs(w2);
+    </script>
+    <script src="./node_modules/vue/dist/vue.js"></script>
+    <script>
+        const app = new Vue({
+            el:'#app',
+            data:{
+                message:'你好鸭'
+            }
+        });
+    </script>
+</body>
+</html>
